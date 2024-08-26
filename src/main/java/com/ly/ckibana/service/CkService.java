@@ -253,6 +253,27 @@ public class CkService {
      * 查询ck,拦截不同报错.
      */
     private ResultSet query(ClickHouseConnection connection, String sql) throws Exception {
+      // fxiaoke-custom-code-start
+      /*
+       * 场景描述：我们大部分ch表的时间字段命名为 _time_second_，但以下换线开头的字段在ES中属于特殊的字段，在kibana上创建 index pattern 时将无法选择这类字段作为时间字段。
+       * 尝试过以下几种方式：
+       *   1. 给ch表新增一个时间字段（比如time_for_ckibana）, 但由于它不是主键和分区键，使用它作为时间字段查询时性能较差 （不可取）
+       *   2. 给ch的dist表创建一个包含新时间字段的物化视图，但物化视图占用实际的磁盘存储。 （不可取）
+       *   3. 给ch的dist表创建一个包含新时间字段的普通视图，普通视图不支持prewhere查询，kibana查询会报错。（不可行）
+       *   4. 修改ch表的 _time_second_ 字段为非下划线开头的字段，但 _time_second_ 属于主键和分区字段，不允许rename。（不可行）
+       *   5. 给ch的dist表创建一个别名字段，但ch的 `select *` 查询是不会输出别名字段内容的，kibana查询会报错 （不可行）
+       *
+       *   综上，暂且在5的基础上，修改ckibana源码，使其在ch查询时明确指定在ch表中创建的别名字段。
+       */
+
+      //如果查询条件里包含了 'time_for_ckibana' 字段，则在select中加上该字段
+      if (sql.contains("time_for_ckibana")) {
+        sql = sql.replace("SELECT * FROM", "SELECT _time_second_ as time_for_ckibana, * FROM ");
+      }
+      // fxiaoke-custom-code-end
+
+
+
         try {
             long begin = System.currentTimeMillis();
             Statement statement = connection.createStatement();
