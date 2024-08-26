@@ -268,7 +268,9 @@ public class CkService {
 
       //如果查询条件里包含了 'time_for_ckibana' 字段，则在select中加上该字段
       if (sql.contains("time_for_ckibana")) {
-        sql = sql.replace("SELECT * FROM", "SELECT _time_second_ as time_for_ckibana, * FROM ");
+        String sqlBefore = sql;
+        sql = sql.replace("SELECT * FROM ", "SELECT _time_second_ as time_for_ckibana, * FROM ");
+        log.info(String.format("\n==== sql modify by fxiaoke ===\nbefore: %s\nafter: %s\n==== sql modify by fxiaoke ===", sqlBefore, sql));
       }
       // fxiaoke-custom-code-end
 
